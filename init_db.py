@@ -4,6 +4,7 @@ import csv
 import math
 import random
 from datetime import datetime, timedelta
+from config import DB_CREDENTIALS
 
 def generar_datos_estacion(dias=21, intervalo_minutos=10, archivo_salida='datos_estacion.csv'):
     # Configuración inicial
@@ -47,7 +48,7 @@ def generar_datos_estacion(dias=21, intervalo_minutos=10, archivo_salida='datos_
             humedad_suelo_base -= 0.005 # Se seca un poquito cada 10 minutos
             # Simulamos un riego cada 7 días
             if i > 0 and i % (7 * 24 * 6) == 0:
-                humedad_suelo_base += 15.0 
+                humedad_suelo_base = 40.0 
             hum_suelo = min(100.0, max(0.0, humedad_suelo_base + random.gauss(0, 0.5)))
             
             # 6. pH del Suelo (Muy estable, cambia poquísimo)
@@ -68,37 +69,32 @@ def generar_datos_estacion(dias=21, intervalo_minutos=10, archivo_salida='datos_
 
 # Ejecutar para 21 días (3 semanas)
 
-
 def inicializar_postgres(csv_path='datos_estacion.csv'):
-    # 1. Configura tus credenciales de PostgreSQL aquí
-    credenciales = {
-        "dbname": "develop", # Nombre de la BD (debes crearla antes en pgAdmin/consola)
-        "user": "postgres",           # Tu usuario
-        "password": "admin",    # Tu contraseña
-        "host": "localhost",          # 'localhost' si está en tu PC, o la IP del servidor
-        "port": "5432"                # El puerto por defecto de Postgres
-    }
-
     try:
         print("🔌 Conectando a PostgreSQL...")
-        conexion = psycopg2.connect(**credenciales)
+        conexion = psycopg2.connect(**DB_CREDENTIALS)
         cursor = conexion.cursor()
 
         # 2. Crear el esquema de la tabla (Usando tipos de Postgres)
         print("🏗️ Creando la tabla 'mediciones_sensores'...")
 
         cursor.execute("""
-            TRUNCATE TABLE mediciones_sensores RESTART IDENTITY;
-        """)    
+            SELECT to_regclass('public.mediciones_sensores');
+        """)
+
+        if cursor.fetchone()[0] is not None:
+            cursor.execute("""
+                TRUNCATE TABLE mediciones_sensores RESTART IDENTITY;
+            """) 
 
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS mediciones_sensores (
                 id SERIAL PRIMARY KEY,
                 fecha TIMESTAMP,
-                temp_amb NUMERIC(5,2),
-                hum_amb NUMERIC(5,2),
-                presion NUMERIC(6,2),
+                temp_ambiente NUMERIC(5,2),
+                hum_ambiente NUMERIC(5,2),
+                presion_atm NUMERIC(6,2),
                 temp_suelo NUMERIC(5,2),
                 hum_suelo NUMERIC(5,2),
                 ph_suelo NUMERIC(4,2)
@@ -121,7 +117,7 @@ def inicializar_postgres(csv_path='datos_estacion.csv'):
             print("🚀 Insertando datos en bloque...")
             query_insert = '''
                 INSERT INTO mediciones_sensores 
-                (fecha, temp_amb, hum_amb, presion, temp_suelo, hum_suelo, ph_suelo) 
+                (fecha, temp_ambiente, hum_ambiente, presion_atm, temp_suelo, hum_suelo, ph_suelo) 
                 VALUES %s
             '''
             
