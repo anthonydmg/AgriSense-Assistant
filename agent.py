@@ -1,5 +1,4 @@
 import json
-from llm_client import llamar_gemma4_stream, llamar_gemma4_completo
 from tools import diccionario_herramientas
 from datetime import datetime
 from config import OLLAMA_URL, OLLAMA_MODEL
@@ -36,7 +35,7 @@ class AgriSenseAgent:
         self.historial.append({"role": "user", "content": pregunta_usuario})
         print("⏳ Conectando con Gemma...")
         
-        respuesta_json = llamar_gemma4_stream(self.historial, tipo_fase="EVALUACIÓN") 
+        respuesta_json = self.llamar_gemma4_stream(self.historial, tipo_fase="EVALUACIÓN") 
         if not respuesta_json:
             print("❌ No se obtuvo una respuesta válida.")
             return
@@ -57,7 +56,7 @@ class AgriSenseAgent:
             instruccion_traduccion = f"Resultado de BD: {resultados_texto}. Genera la respuesta final al agricultor siguiendo el Escenario B."
             self.historial.append({"role": "user", "content": instruccion_traduccion})
             
-            respuesta_final_json = llamar_gemma4_stream(self.historial, tipo_fase="SÍNTESIS")
+            respuesta_final_json = self.llamar_gemma4_stream(self.historial, tipo_fase="SÍNTESIS")
             if not respuesta_final_json:
                 return
                 
